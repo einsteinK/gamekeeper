@@ -5,7 +5,7 @@ GameKeeper steps in by providing developers with powerful tools to manage their 
 with their game. 
 
 ## How does GameKeeper make my life easier:
-- Using agreed apon standards set by the Developer Community (http://devforums.roblox.com)
+- Using agreed apon standards set by the Developer Community (http://devforum.roblox.com)
 - Open Sourced and extendable to developers taste
 - Kept up-to-date using the GameKeeper Manager plugin
 - Designed and built by experienced framework developer Reinitialized, supported by the Developer Community
