@@ -35,9 +35,93 @@ local Utilities = {} do
         
         Utilities.GetService = GetService
     end
+	
+	local function Modify(Object, Properties)
+        if not (type(Object) == "userdata") then
+            return error("[Utilities.Modify(userdata Object, table Properties)] - arg1 is type ".. type(Object), 2)
+        end
+        if not (type(Properties) == "table") then
+            return error("[Utilities.Modify(userdata Object, table Properties)] - arg2 is type ".. type(Properties), 2)
+        end
+        
+        for Key, Value in next, Properties do
+            Object[Key] = Value
+        end
+        
+        return Object
+    end
+    Utilities.Modify = Modify
+    
+    local function Create(ClassName, Properties)
+        if not (type(ClassName) == "string") then
+            return error("[Utilities.Create(string ClassName, table Properties)] - arg1 is type ".. type(ClassName), 2)
+        end/c/
+        
+        return Modify(Instance.new(ClassName), Properties)
+    end
+    Utilities.Create = Create
+	
+	local function CreateManagedSignal()
+		local UnmanagedSignal = Instance.new("BindableEvent")
+		local Arguments = nil
+		local NumOfArgs = 0
+		
+		local this = {} do
+			function this:Fire(...)
+				Arguments = {...}
+				NumOfArgs = select("#", ...)
+				
+				UnmanagedSignal:Fire()
+			end
+			
+			function this:Destroy()
+				UnmanagedSignal:Destroy()
+				Arguments = nil
+				NumOfArgs = nil
+				this = nil
+			end
+			
+			local Event = {} do
+				function Event:connect(Handler, DisconnectOnError)
+					if not (type(Handler) == "function") then
+						return error("[ManagedEvent.Event:connect(function Handler, boolean DisconnectOnError)] - arg1 is type ".. type(Handler), 2)
+					end
+					if not (type(DisconnectOnError) == "boolean") then
+						DisconnectOnError = false
+					end
+					
+					local Connection do
+						if (DisconnectOnError) then
+							Connection = UnmanagedEvent.Event:connect(function()
+								local Success = pcall(Handler, unpack(Arguments))
+								if not Success then
+									Connection:disconnect()
+									warn("Disconnected ManagedEvent because of exception.")
+								end
+							end)
+						else
+							Connection = UnmanagedEvent.Event:connect(function()
+								Handler(unpack(Arguments))
+							end)
+						end
+					end
+					
+					return Connection
+				end
+				
+				function Event:wait()
+					UnmanagedEvent.Event:wait()
+					return unpack(Arguments, NumOfArgs)
+				end
+				
+				this.Event = Event
+			end
+		end
+		
+		return this
+	end
     
     local HttpService = GetService("HttpService")
-    local RunService = GetService("RunService")
     
     local function JSONEncode(Table)
         if not (type(Table) == "table") then
@@ -80,29 +164,21 @@ local Utilities = {} do
         end
     end
     Utilities.URLEncode = URLEncode
-    
-    local function Modify(Object, Properties)
-        if not (type(Object) == "userdata") then
-            return error("[Utilities.Modify(userdata Object, table Properties)] - arg1 is type ".. type(Object), 2)
-        end
-        if not (type(Properties) == "table") then
-            return error("[Utilities.Modify(userdata Object, table Properties)] - arg2 is type ".. type(Properties), 2)
-        end
-        
-        for Key, Value in next, Properties do
-            Object[Key] = Value
-        end
-        
-        return Object
-    end
-    Utilities.Modify = Modify
-    
-    local function Create(ClassName, Properties)
-        if not (type(ClassName) == "string") then
-            return error("[Utilities.Create(string ClassName, table Properties)] - arg1 is type ".. type(ClassName), 2)
-        end
-        
-        return Modify(Instance.new(ClassName), Properties)
-    end
-    Utilities.Create = Create
+	
+	local RunService = GetService("RunService")
+	
+	local function GetPeerStatus()
+		if (RunService:IsServer() and not RunService:IsClient() and RunService:IsStudio()) then
+			return "StudioServer"
+		elseif (RunService:IsServer() and not RunService:IsClient() and not RunService:IsStudio()) then
+			return "OnlineServer"
+		elseif (not RunService:IsServer() and RunService:IsClient() and RunService:IsStudio()) then
+			return "StudioClient"
+		elseif (not RunService:IsServer() and RunService:IsClient() and not RunService:IsStudio()) then
+			return "OnlineClient"
+		else
+			return "Unknown"
+		end
+	end
+	Utilities.GetPeerStatus = GetPeerStatus
 end
