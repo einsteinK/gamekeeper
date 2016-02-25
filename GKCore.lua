@@ -202,11 +202,7 @@ end
 local System = {} do
     local Peer do
         if (Utilities.GetPeerStatus():match("Server")) then
-<<<<<<< HEAD
-            Peer = Utilities.GetService("NetworkServer")
-=======
             Peer = Utilities.GetService.NetworkServer
->>>>>>> core
         elseif (Utilities.GetPeerStatus():match("Client")) then
             Peer = Utilities.GetService.NetworkClient
         else
