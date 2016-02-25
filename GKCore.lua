@@ -10,6 +10,8 @@
             - Initial writing
 ]]
 
+local Data = {}
+
 local Utilities = {} do
     local GetService do
         local Cache = setmetatable({}, {__mode = "v"})
@@ -55,7 +57,7 @@ local Utilities = {} do
     local function Create(ClassName, Properties)
         if not (type(ClassName) == "string") then
             return error("[Utilities.Create(string ClassName, table Properties)] - arg1 is type ".. type(ClassName), 2)
-        end/c/
+        end
         
         return Modify(Instance.new(ClassName), Properties)
     end
@@ -120,7 +122,21 @@ local Utilities = {} do
 		
 		return this
 	end
-    
+	Utilities.CreateManagedSignal = CreateManagedSignal
+	
+    local ManagedConnect do
+	    Data.ManagedConnections = setmetatable({}, {__mode = "v"})
+	    
+	    function ManagedConnect(Event,Handler)
+	        local Connection = Event:connect(Handler)
+	        table.insert(Data.ManagedConnections, Connection)
+	        
+	        return Connection
+        end
+	   
+	    Utilities.ManagedConnect = ManagedConnect
+    end
+   
     local HttpService = GetService("HttpService")
     
     local function JSONEncode(Table)
@@ -182,3 +198,28 @@ local Utilities = {} do
 	end
 	Utilities.GetPeerStatus = GetPeerStatus
 end
+
+local System = {} do
+    local Peer do
+        if (Utliities.GetPeerStatus():match("Server")) then
+            Peer = Utilities.GetService("NetworkServer")
+        elseif (Utilities.GetPeerStatus():match("Client")) then
+            Peer = Utilities.GetService("NetworkServer")
+        else
+            Peer = "Unknown"
+        end
+        
+        System.Peer = Peer
+    end
+    
+    System.Version = "1.0"
+    System.BuildId = "afc1eed"
+    System.DevelopmentBranch = "core"
+    System.VersionString = System.Version.. " [Build ".. System.BuildId ..":".. System.DevelopmentBranch .."]"
+end
+
+local GameKeeperCore = {}
+    GameKeeperCore.Utilities = Utilities
+    GameKeeperCore.System = System
+
+return GameKeeperCore
