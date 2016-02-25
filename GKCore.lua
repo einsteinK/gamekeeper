@@ -8,42 +8,40 @@
     Changelog:
         Feb 22, 2016:
             - Initial writing
+        
+        Feb 25, 2016:
+            - Critical bug fixes
+            - Rewrote Utilities.GetService
+            - Fixed output handling
 ]]
 
 local Data = {}
 
 local Utilities = {} do
     local GetService do
-        local Cache = setmetatable({}, {__mode = "v"})
-        local Service
-        
-        function GetService(Name)
-            if not (type(Name) == "string") then
-                return error("[Utilities.GetService(string Name)] - arg1 is type ".. type(Name), 2)
+        local function GetServiceInternal(self, Name)
+            local Success, Service = pcall(game.GetService, game, Name)
+            if Success then
+                rawset(self, Name, Service)
+                return Service
+            else
+                return error("[GameKeeperCore FATAL] Service ".. Name .." is not a valid ROBLOX Service.", 2)
             end
-            
-            Service = Cache[Name]
-            if not Service then
-                local Success = pcall(function() Service = game:GetService(Name) end)
-                if Success then
-                    Cache[Name] = Service
-                else
-                    return error("[Utilities.GetService(string Name)] - Service ".. Name .." is not a valid Service.", 2)
-                end
-            end
-            
-            return Service
         end
         
-        Utilities.GetService = GetService
+        GetService = setmetatable({}, {
+            __index = GetServiceInternal,
+            __metatable = "[GameKeeperCore FATAL] Access Restricted"
+        })
     end
+    Utilities.GetService = GetService
 	
 	local function Modify(Object, Properties)
         if not (type(Object) == "userdata") then
-            return error("[Utilities.Modify(userdata Object, table Properties)] - arg1 is type ".. type(Object), 2)
+            return error("[GameKeeperCore FATAL] Utilities.Modify(userdata Object, table Properties) - arg1 is incorrect type ".. type(Object), 2)
         end
         if not (type(Properties) == "table") then
-            return error("[Utilities.Modify(userdata Object, table Properties)] - arg2 is type ".. type(Properties), 2)
+            return error("[GameKeeperCore FATAL] Utilities.Modify(userdata Object, table Properties) - arg1 is incorrect type ".. type(Properties), 2)
         end
         
         for Key, Value in next, Properties do
@@ -56,7 +54,10 @@ local Utilities = {} do
     
     local function Create(ClassName, Properties)
         if not (type(ClassName) == "string") then
-            return error("[Utilities.Create(string ClassName, table Properties)] - arg1 is type ".. type(ClassName), 2)
+            return error("[GameKeeperCore FATAL] Utilities.Create(string ClassName, table Properties) - arg1 is incorrect type ".. type(ClassName), 2)
+        end
+        if not (type(Properties) == "string") then
+            return error("[GameKeeperCore FATAL] Utilites.Create(string ClassName, table Properties) - arg2 is incorrect type ".. type(Properties), 2)
         end
         
         return Modify(Instance.new(ClassName), Properties)
@@ -85,7 +86,7 @@ local Utilities = {} do
 			local Event = {} do
 				function Event:connect(Handler, DisconnectOnError)
 					if not (type(Handler) == "function") then
-						return error("[ManagedEvent.Event:connect(function Handler, boolean DisconnectOnError)] - arg1 is type ".. type(Handler), 2)
+						return error("[GameKeeperCore FATAL] ManagedEvent.Event:connect(function Handler, boolean DisconnectOnError) - arg1 is incorrect type ".. type(Handler), 2)
 					end
 					if not (type(DisconnectOnError) == "boolean") then
 						DisconnectOnError = false
@@ -97,7 +98,7 @@ local Utilities = {} do
 								local Success = pcall(Handler, unpack(Arguments,1,NumOfArgs))
 								if not Success then
 									Connection:disconnect()
-									warn("Disconnected ManagedEvent because of exception.")
+									warn("[GameKeeperCore WARN] Disconnected ManagedEvent because of exception.")
 								end
 							end)
 						else
@@ -140,12 +141,12 @@ local Utilities = {} do
     
     local function JSONEncode(Table)
         if not (type(Table) == "table") then
-            return error("[Utilities.JSONEncode(table Table)] - arg1 is type ".. type(Table), 2)
+            return error("[GameKeeperCore FATAL] Utilities.JSONEncode(table Table) - arg1 is incorrect type ".. type(Table), 2)
         end
         
         local Success = pcall(function() Table = HttpService:JSONEncode(Table) end)
         if not Success then
-            return error("[Utilities.JSONEncode(table Table)] - unable to encode table.", 2)
+            return error("[GameKeeperCore FATAL] Utilities.JSONEncode(table Table) - Failed to encode table.")
         else
             return Table
         end
@@ -154,12 +155,12 @@ local Utilities = {} do
     
     local function JSONDecode(String)
         if not (type(String) == "string") then
-            return error("[Utilities.JSONDecode(string Table) = arg1 is type ".. type(String), 2)
+            return error("[GameKeeperCore FATAL] Utilities.JSONDecode(string Table) - arg1 is incorrect type ".. type(String), 2)
         end
         
         local Success = pcall(function() String = HttpService:JSONDecode(String) end)
         if not Success then
-            return error("[Utilities.JSONDecode(string String)] - unable to decode string.", 2)
+            return error("[GameKeeperCore FATAL] Failed to decode string.")
         else
             return String
         end
@@ -168,12 +169,12 @@ local Utilities = {} do
     
     local function URLEncode(String)
         if not (type(String) == "string") then
-            return error("[Utilities.URLEncode(string String)] - arg1 is type ".. type(String), 2)
+            return error("[GameKeeperCore FATAL] Utilities.URLEncode(string String) - arg1 is incorrect type ".. type(String), 2)
         end
         
         local Success = pcall(function() String = HttpService:UrlEncode(String) end)
         if not Success then
-            return error("[Utilities.URLEncode(string String)] - unable to encode string.", 2)
+            return error("[GameKeeperCore FATAL] Failed to encode string.")
         else
             return String
         end
@@ -201,9 +202,13 @@ end
 local System = {} do
     local Peer do
         if (Utilities.GetPeerStatus():match("Server")) then
+<<<<<<< HEAD
             Peer = Utilities.GetService("NetworkServer")
+=======
+            Peer = Utilities.GetService.NetworkServer
+>>>>>>> core
         elseif (Utilities.GetPeerStatus():match("Client")) then
-            Peer = Utilities.GetService("NetworkServer")
+            Peer = Utilities.GetService.NetworkClient
         else
             Peer = "Unknown"
         end
