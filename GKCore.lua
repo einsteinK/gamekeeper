@@ -65,8 +65,7 @@ local Utilities = {} do
 	
 	local function CreateManagedSignal()
 		local UnmanagedSignal = Instance.new("BindableEvent")
-		local Arguments = nil
-		local NumOfArgs = 0
+		local Arguments,NumOfArgs
 		
 		local this = {} do
 			function this:Fire(...)
@@ -94,16 +93,16 @@ local Utilities = {} do
 					
 					local Connection do
 						if (DisconnectOnError) then
-							Connection = UnmanagedEvent.Event:connect(function()
-								local Success = pcall(Handler, unpack(Arguments))
+							Connection = UnmanagedSignal.Event:connect(function()
+								local Success = pcall(Handler, unpack(Arguments,1,NumOfArgs))
 								if not Success then
 									Connection:disconnect()
 									warn("Disconnected ManagedEvent because of exception.")
 								end
 							end)
 						else
-							Connection = UnmanagedEvent.Event:connect(function()
-								Handler(unpack(Arguments))
+							Connection = UnmanagedSignal.Event:connect(function()
+								Handler(unpack(Arguments,1,NumOfArgs))
 							end)
 						end
 					end
@@ -112,8 +111,8 @@ local Utilities = {} do
 				end
 				
 				function Event:wait()
-					UnmanagedEvent.Event:wait()
-					return unpack(Arguments, NumOfArgs)
+					UnmanagedSignal.Event:wait()
+					return unpack(Arguments, 1, NumOfArgs)
 				end
 				
 				this.Event = Event
@@ -201,7 +200,7 @@ end
 
 local System = {} do
     local Peer do
-        if (Utliities.GetPeerStatus():match("Server")) then
+        if (Utilities.GetPeerStatus():match("Server")) then
             Peer = Utilities.GetService("NetworkServer")
         elseif (Utilities.GetPeerStatus():match("Client")) then
             Peer = Utilities.GetService("NetworkServer")
