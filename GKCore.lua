@@ -16,6 +16,9 @@
         
         Feb 26, 2016:
             - Rewrote core to meet new design standards and fix issues
+            
+        Feb 28, 2016:
+            - Implemented LogService
 ]]
 
 local GKCore = {} do
@@ -238,5 +241,38 @@ local GKCore = {} do
         System["VersionString"] = System["Version"] .. "[Build " .. System["BuildId"] .. ":" .. System["DevelopmentBranch"] .. "]"
     end
     GKCore["System"] = System
+    
+    local LogService = {} do
+        local RBX_LogService = Utilities["LogService"]
+        System["Logs"] = {
+            ["Info"] = {},
+            ["Warning"] = {},
+            ["Error"] = {},
+            ["Fatal"] = {}
+        }
+        Data["GameLogs"] = {
+            ["Info"] = {},
+            ["Warning"] = {},
+            ["Error"] = {},
+            ["Fatal"] = {}
+        }
+        
+        LogService.MessageOut:connect(function(Message, MessageType)
+            if (Message:sub(0, 16) == "[GameKeeperCore ") then
+                local Type = string.sub(16, Message:find("]"))
+                table.insert(System["Logs"][Type], {Message, os.time()})
+            else
+                if (MessageType == Enum.MessageType.MessageOutput or MessageType == Enum.MessageType.MessageInfo) then
+                    table.insert(Data["GameLogs"]["Info"], {Message, os.time()})
+                elseif (MessageType == Enum.MessageType.MessageWarning) then
+                    table.insert(Data["GameLogs"]["Warning"], {Message, os.time()})
+                elseif (MessageType == Enum.MessageError) then
+                    table.insert(Data["GameLogs"]["Error"], {Message, os.time()})
+                    
+                    -- TODO: implement logic for determining if error is fatal
+                end
+            end
+        end)
+    end
 
 return GKCore
