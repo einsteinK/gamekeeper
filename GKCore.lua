@@ -16,6 +16,10 @@
         
         Feb 26, 2016:
             - Rewrote core to meet new design standards and fix issues
+            
+        Feb 28, 2016:
+            - Implemented LogService
+            - Stablized Core (bugfixed)
 ]]
 
 local GKCore = {} do
@@ -68,7 +72,7 @@ local GKCore = {} do
         Utilities["Modify"] = Modify
         
         local function Create(ClassName, Properties)
-            if not type(ClassName) == "string") then
+            if not type(ClassName) == "string" then
                 return error("[GameKeeperCore Error] Utilities.Create(string ClassName, table Properties) - argument #1 is incorrect type \"".. type(ClassName) .."\".", 2)
             end
             
@@ -137,7 +141,7 @@ local GKCore = {} do
         Utilities["ManagedSignal"] = ManagedSignal
         
         local ManagedConnect do
-            Data.ManagedConnections = setmetatable({}, {__mode = "v"})
+            Data["ManagedConnections"] = setmetatable({}, {__mode = "v"})
             
             function ManagedConnect(Event, Handler)
                 if not tostring(Event):match("Signal ") then
@@ -148,7 +152,7 @@ local GKCore = {} do
                 end
                 
                 local Connection = Event:connect(Handler)
-                table.insert(ManagedConnections, Connection)
+                table.insert(Data["ManagedConnections"], Connection)
                 return Connection 
             end
         end
@@ -203,7 +207,7 @@ local GKCore = {} do
         local GetPeerStatus do
             local RunService = GetService["RunService"]
             
-        	local function GetPeerStatus()
+        	function GetPeerStatus()
         		if (RunService:IsServer() and not RunService:IsClient() and RunService:IsStudio()) then
         			return "StudioServer"
         		elseif (RunService:IsServer() and not RunService:IsClient() and not RunService:IsStudio()) then
@@ -233,10 +237,44 @@ local GKCore = {} do
         end
         
         System["Version"] = "1.0"
-        System["BuildId"] = "8566aad"
+        System["BuildId"] = "307c0dd"
         System["DevelopmentBranch"] = "core"
         System["VersionString"] = System["Version"] .. "[Build " .. System["BuildId"] .. ":" .. System["DevelopmentBranch"] .. "]"
     end
     GKCore["System"] = System
+    
+    local LogService = {} do
+        local RBX_LogService = Utilities["GetService"]["LogService"]
+        System["Logs"] = {
+            ["Info"] = {},
+            ["Warning"] = {},
+            ["Error"] = {},
+            ["Fatal"] = {}
+        }
+        Data["GameLogs"] = {
+            ["Info"] = {},
+            ["Warning"] = {},
+            ["Error"] = {},
+            ["Fatal"] = {}
+        }
+        
+        RBX_LogService["MessageOut"]:connect(function(Message, MessageType)
+            if (Message:sub(0, 16) == "[GameKeeperCore ") then
+                local Type = string.sub(16, Message:find("]"))
+                table.insert(System["Logs"][Type], {Message, os.time()})
+            else
+                if (MessageType == Enum.MessageType.MessageOutput or MessageType == Enum.MessageType.MessageInfo) then
+                    table.insert(Data["GameLogs"]["Info"], {Message, os.time()})
+                elseif (MessageType == Enum.MessageType.MessageWarning) then
+                    table.insert(Data["GameLogs"]["Warning"], {Message, os.time()})
+                elseif (MessageType == Enum.MessageError) then
+                    table.insert(Data["GameLogs"]["Error"], {Message, os.time()})
+                    
+                    -- TODO: implement logic for determining if error is fatal
+                end
+            end
+        end)
+    end
+end
 
 return GKCore
